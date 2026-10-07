@@ -24,6 +24,28 @@
       </span>
     </p>
 
+    <section class="warning-ledger">
+      <h3>超标预警台账（在线排放监测回写）</h3>
+      <p class="page-desc">监测记录审定前判定超标即回写预警，重算转达标自动解除；审定超标的以「已审定确认」归档。</p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th v-for="column in warningColumns" :key="column">{{ column }}</th>
+            <th>台账状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in warningRows" :key="String(row.id)">
+            <td v-for="column in warningColumns" :key="column">{{ row[column] || '—' }}</td>
+            <td>{{ row.预警状态 }}</td>
+          </tr>
+          <tr v-if="!warningRows.length">
+            <td :colspan="warningColumns.length + 1" class="empty-state">暂无由在线排放监测回写的超标预警</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
     <form class="filter-bar" @submit.prevent="reload">
       <label v-for="field in filterFields" :key="field" class="filter-item">
         <span>{{ field }}</span>
@@ -79,15 +101,19 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { ensureCemsV2, listWarnings } from '@/data/cems/store'
 import type { EntryRow } from '@/data/types'
+import type { WarningRow } from '@/data/cems/types'
 
 const meta = moduleMeta('emission')
 const columns = ["监控编号", "监控指标", "限值要求", "实测值", "达标判定", "监控日期", "监控人员", "监控状态"]
+const warningColumns = ["监控编号", "监控指标", "限值要求", "实测值", "达标判定", "来源记录", "回写时间", "更新时间", "解除时间", "审定时间"]
 const actions = ["提交监控", "判定达标", "标记未达标"]
 const statuses = ["待监控", "监控中", "已达标", "未达标"]
 const stats = [{"label": "待监控指标", "value": 0}, {"label": "已达标指标", "value": 0}, {"label": "未达标指标", "value": 0}]
 
 const rows = ref<EntryRow[]>([])
+const warningRows = ref<WarningRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
@@ -125,6 +151,8 @@ function runAction(action: string, row: EntryRow) {
 function reload() {
   errorMessage.value = ''
   try {
+    ensureCemsV2()
+    warningRows.value = listWarnings()
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
@@ -135,3 +163,17 @@ function reload() {
 
 onMounted(reload)
 </script>
+
+<style scoped>
+.warning-ledger {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+.warning-ledger h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+</style>
