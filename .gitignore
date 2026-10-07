@@ -85,3 +85,6 @@ desktop.ini
 *.db
 *.pid
 *.seed
+
+# CEMS 验证脚本的临时打包产物
+frontend/scripts/.verify-build.cjs
